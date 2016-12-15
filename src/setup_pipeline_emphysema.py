@@ -10,7 +10,7 @@ with open('paths.yml','w') as f:
     # KLUDGE until we develop betting install infrastructure for "pypeline.py"
     if platform.system()=='Linux':
         f.write("pipeline_library: /home/john/Code/CTBangBang_Pipeline/src/\n")
-    elif platform.system()='Windows':
+    elif platform.system()=='Windows':
         f.write("pipeline_library: \\ldap\ldaphome\jhoffman\CTBB_Pipeline\src\\n")
 
     # Specify location of Condor public scripts
