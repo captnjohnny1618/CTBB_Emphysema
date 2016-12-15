@@ -11,8 +11,8 @@ with open('paths.yml','w') as f:
     if platform.system()=='Linux':
         f.write("pipeline_library: /home/john/Code/CTBangBang_Pipeline/src/\n")
     elif platform.system()=='Windows':
-        f.write(r"pipeline_library: \\ldap\ldaphome\jhoffman\CTBB_Pipeline\src\\n")
+        f.write("pipeline_library: \\\ldap\ldaphome\jhoffman\CTBB_Pipeline\src\ \r\n")
 
     # Specify location of Condor public scripts
     # KLUDGE until we come up with something system independent
-    f.write("segmentation_script: \\ldap\ldaphome\jhoffman\pipeline_scripts\segment_lung_condor.py\n")
+    f.write("segmentation_script: \\\ldap\ldaphome\jhoffman\pipeline_scripts\segment_lung_condor.py\n")
