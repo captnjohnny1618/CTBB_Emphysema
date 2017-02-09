@@ -8,8 +8,6 @@ from time import strftime
 from subprocess import list2cmdline
 from subprocess import call
 
-__DEBUG__=True
-
 paths={}
 
 def parse_config(config_filepath):
@@ -23,7 +21,7 @@ def parse_config(config_filepath):
     # Validate that we have any required configuration parameters
     if ('library' not in config_dict.keys()):
         logging.error('"library" is a required configuration parameter and was not found. Exiting.')
-        config_dict={}        
+        config_dict={}
     # Check for optional fields and set defaults if needed
     else:
         pass
@@ -64,15 +62,12 @@ def create_job_list(recon_list):
     job_list=[]
 
     for l in recon_list:
-        series_filepath=l['img_series_filepath']
-        series_dirpath = os.path.dirname(l['img_series_filepath'])
-        series_output_path=os.path.join(series_dirpath.strip('img'),'seg')
+        job_arg_1='python'
+        job_arg_2='myscript.py'
+        job_arg_3='cmd_line_argument'
+        
+        job_list.append(list2cmdline([job_arg_1,job_arg_2,job_arg_3]))
 
-        if not __DEBUG__:
-            job_list.append(list2cmdline([paths['segmentation_script'],series_filepath,series_output_path]))
-        else:
-            job_list.append(list2cmdline([paths['test_script'],series_filepath,series_output_path]))
-            
     logging.info('Found {} reconstructions. Created {} jobs to be executed on Condor'.format(len(recon_list),len(job_list)))
     
     return job_list
@@ -91,7 +86,7 @@ def condor_submit(job_list,library):
     job_list_filepath=tmp_fid.name
     tmp_fid.close()
 
-    # Call the Condor submit script (authored by pechin and configured for MedQIA/CVIB specific stuff)    
+    # Call the Condor submit script (authored by pechin and configured for MedQIA/CVIB specific stuff)
     command='python {} {} -w {} -r CVIB==TRUE --limit25 --automountconf {}'.format(paths['submit_script'],job_list_filepath,library.log_dir,paths['automount_script'])
     logging.info(command)
     exit_code=call(command,shell=False)
@@ -119,13 +114,9 @@ if __name__=="__main__":
     # Read the configuration file passed at the command line
     if len(sys.argv)<2:
         print("No configuration file provided.") # note: cannot use logging yet since not configured
-        sys.exit('Exiting.')
+        sys.exit("Exiting.")
     else:            
-        config_dict=parse_config(sys.argv[1])
-        print(config_dict)
-        if not config_dict:
-            logging.error('Configuration file did not properly load.')
-            sys.exit('Exiting.')
+        parse_config(sys.argv[1])
         library=ctbb_plib(config_dict['library'])
 
     # Detailed logging setup
