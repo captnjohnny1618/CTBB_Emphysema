@@ -13,9 +13,17 @@ with open('paths.yml','w') as f:
     elif platform.system()=='Windows':
         f.write("pipeline_library: \\\ldap\ldaphome\jhoffman\CTBB_Pipeline\src\ \r\n")
 
-    # Specify location of Condor public scripts
-    # KLUDGE until we come up with something system independent
-    f.write("segmentation_script: \\\ldap\ldaphome\jhoffman\pipeline_scripts\segment_lung_condor.py\n")
+    # Condor public scripts
+    # These scripts handle condor job submission however don't handle
+    # individual tasks (such as file conversion or segmentation)    
+    # KLUDGE until we come up with something system independent    
     f.write("submit_script: \\\skynet\cvib\PechinTest2\scripts\submit.py\n")
     f.write("automount_script: \\\skynet\cvib\PechinTest2\scripts\\auto_mount_conf.py\n")
-    f.write("test_script: \\\ldap\ldaphome\jhoffman\pipeline_scripts\condor_test.py\n")
+
+    # Job-specific scripts
+    # Handle a single task for the pipeline. These are the scripts that jobs call once
+    # they have been submitted to Condor.  This might be conversion from .img to .hr2, segmenting
+    # the lungs, running CAD, or running histogramming
+    f.write("test_script: \\\skynet\cvib\PechinTest2\scripts\condor_test.py\n")
+    f.write("segmentation_script: \\\skynet\cvib\PechinTest2\scripts\segment_lung_condor.py\n")
+    f.write("conversion_script: \\\skynet\cvib\PechinTest2\scripts\convert_img_file.py\n")
