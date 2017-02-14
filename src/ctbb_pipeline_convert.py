@@ -65,9 +65,9 @@ def create_job_list(recon_list):
         job_arg_1='python'
         conversion_script_filepath=paths['conversion_script']
         series_filepath=l['img_series_filepath']
-        series_output_path=
+        series_prm_filepath=series_filepath.strip(".img")+".hr2"
         
-        job_list.append(list2cmdline([job_arg_1,job_arg_2,job_arg_3]))
+        job_list.append(list2cmdline([job_arg_1,conversion_script_filepath,series_filepath,series_prm_filepath]))
 
     logging.info('Found {} reconstructions. Created {} jobs to be executed on Condor'.format(len(recon_list),len(job_list)))
     
