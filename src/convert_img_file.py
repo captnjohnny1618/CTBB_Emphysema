@@ -4,6 +4,8 @@ import logging
 
 import yaml
 
+path_file='\\\skynet\cvib\PechinTest2\scripts\paths.yml'
+
 def usage():
     print(
         "USAGE:\n"
@@ -19,9 +21,11 @@ def configure_pipeline():
     
     # Make sure we modify the global var
     global paths
+
+    print(os.getcwd())
     
     # Load the paths.yml file
-    with open('paths.yml','r') as f:
+    with open(path_file,'r') as f:
         logging.info('Using paths.yml from: '.format(f.name))
         paths=yaml.load(f)
 
@@ -47,6 +51,8 @@ if __name__=="__main__":
     configure_pipeline()
         
     # Initialize our image stack (note, this does NOT load images into memory)
+    print(sys.argv)
+    logging.error(str(sys.argv))
     img_stack=pype.pipeline_img_series(sys.argv[1],sys.argv[2])
 
     output_filepath=img_stack.img_filepath.strip(".img")+".hr2"

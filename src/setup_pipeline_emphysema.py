@@ -25,7 +25,7 @@ with open('paths.yml','w') as f:
     # they have been submitted to Condor.  This might be conversion from .img to .hr2, segmenting
     # the lungs, running CAD, or running histogramming
     f.write("test_script: \\\skynet\cvib\PechinTest2\scripts\condor_test.py\n")
-    f.write("segmentation_script: \\\skynet\cvib\PechinTest2\scripts\segment_lung_condor.py\n")
+    f.write("segmentation_script: \\\skynet\cvib\PechinTest2\scripts\segment_hr2_file.py\n")
     f.write("conversion_script: \\\skynet\cvib\PechinTest2\scripts\convert_img_file.py\n")
 
     # QIA Library path

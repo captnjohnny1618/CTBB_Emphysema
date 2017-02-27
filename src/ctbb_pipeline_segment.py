@@ -8,7 +8,7 @@ from time import strftime
 from subprocess import list2cmdline
 from subprocess import call
 
-__DEBUG__=True
+__DEBUG__=False
 
 paths={}
 
@@ -54,26 +54,31 @@ def configure_pipeline():
     global pype
     global ctbb_plib    
     
-def create_job_list(recon_list):
+def create_job_list(recon_list,parent_arg):
     ### Function creates list of system calls (i.e. command line program calls)
     ### Each list item forms a separate job that will be sent to condor
     ### recon_list is loaded from the 'recons.csv' file contained in the library
 
     logging.info('Building job list')
-    
+
     job_list=[]
 
     for l in recon_list:
-        series_filepath=l['img_series_filepath']
-        series_dirpath = os.path.dirname(l['img_series_filepath'])
-        series_output_path=os.path.join(series_dirpath.strip('img'),'seg')
+        img_filepath=l['img_series_filepath']
+        img_dirpath=os.path.dirname(img_filepath) #/path/to/study/img/
+        hr2_filepath=img_filepath.strip(".img")+".hr2" #/path/to/study/img/id_st_kernel.hr2
+        seg_dirpath = os.path.join(os.path.dirname(img_dirpath),'seg') #/path/to/study/seg/
+        parent_arg=str(parent_arg).replace(' ','')
 
         if not __DEBUG__:
-            job_list.append(list2cmdline([paths['segmentation_script'],series_filepath,series_output_path]))
+            job_list.append(list2cmdline([paths['segmentation_script'],hr2_filepath,seg_dirpath,parent_arg]))
         else:
             job_list.append(list2cmdline([paths['test_script'],series_filepath,series_output_path]))
             
     logging.info('Found {} reconstructions. Created {} jobs to be executed on Condor'.format(len(recon_list),len(job_list)))
+
+    for i in range(5):
+        print(job_list[i])
     
     return job_list
 
@@ -94,6 +99,7 @@ def condor_submit(job_list,library):
     # Call the Condor submit script (authored by pechin and configured for MedQIA/CVIB specific stuff)    
     command='python {} {} -w {} -r CVIB==TRUE --limit25 --automountconf {}'.format(paths['submit_script'],job_list_filepath,library.log_dir,paths['automount_script'])
     logging.info(command)
+    command=command.split(' ')
     exit_code=call(command,shell=False)
     #os.system('python {} {} -w {} -r CVIB==TRUE --limit25 --automountconf {}'.format(submit_script_filepath,job_list_filepath,library.log_dir,automount_script_filepath))
 
@@ -122,12 +128,37 @@ if __name__=="__main__":
         sys.exit('Exiting.')
     else:            
         config_dict=parse_config(sys.argv[1])
-        print(config_dict)
         if not config_dict:
             logging.error('Configuration file did not properly load.')
             sys.exit('Exiting.')
         library=ctbb_plib(config_dict['library'])
 
+    # Check if user has specified a "parent_seg" (parent segmentation) configuration
+    # Parent segmentation is the segmentation that will override segmentations with different parameters
+    # We'll need to parse this into our job_list setup if it exists
+    if 'parent_seg' in config_dict.keys():
+        print('Parent configuration specification possibly detected')
+
+        dose_parent_seg=[]
+        kernel_parent_seg=[]
+        slice_thickness_parent_seg=[]
+
+        # Will throw key errors if not specified in configuration file
+        try:
+            dose_parent_seg=config_dict['parent_seg']['dose']
+        except:
+            pass
+        try:
+            kernel_parent_seg=config_dict['parent_seg']['kernel']
+        except:
+            pass            
+        try:
+            slice_thickness_parent_seg=config_dict['parent_seg']['slice_thickness']
+        except:
+            pass            
+
+        parent_arg=[dose_parent_seg,kernel_parent_seg,slice_thickness_parent_seg] # should look something like [100,1,[]]
+        
     # Detailed logging setup
     # Writes to file in output library's log directory 
     # Also writes log messages to the command line
@@ -148,7 +179,7 @@ if __name__=="__main__":
     logging.info('Target study library: {}'.format(library.path))
     library.refresh_recon_list()
     recon_list=library.get_recon_list()
-    job_list=create_job_list(recon_list)
+    job_list=create_job_list(recon_list,parent_arg)
 
     # Submit the job list to condor
     condor_submit(job_list,library)

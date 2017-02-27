@@ -62,12 +62,11 @@ def create_job_list(recon_list):
     job_list=[]
 
     for l in recon_list:
-        job_arg_1='python'
         conversion_script_filepath=paths['conversion_script']
         series_filepath=l['img_series_filepath']
-        series_prm_filepath=series_filepath.strip(".img")+".hr2"
+        series_prm_filepath=series_filepath.strip(".img")+".prm"
         
-        job_list.append(list2cmdline([job_arg_1,conversion_script_filepath,series_filepath,series_prm_filepath]))
+        job_list.append(list2cmdline([conversion_script_filepath,series_filepath,series_prm_filepath]))
 
     logging.info('Found {} reconstructions. Created {} jobs to be executed on Condor'.format(len(recon_list),len(job_list)))
     
@@ -90,6 +89,7 @@ def condor_submit(job_list,library):
     # Call the Condor submit script (authored by pechin and configured for MedQIA/CVIB specific stuff)
     command='python {} {} -w {} -r CVIB==TRUE --limit25 --automountconf {}'.format(paths['submit_script'],job_list_filepath,library.log_dir,paths['automount_script'])
     logging.info(command)
+    command=command.split(' ')
     exit_code=call(command,shell=False)
     #os.system('python {} {} -w {} -r CVIB==TRUE --limit25 --automountconf {}'.format(submit_script_filepath,job_list_filepath,library.log_dir,automount_script_filepath))
 
@@ -117,8 +117,9 @@ if __name__=="__main__":
         print("No configuration file provided.") # note: cannot use logging yet since not configured
         sys.exit("Exiting.")
     else:            
-        parse_config(sys.argv[1])
+        config_dict=parse_config(sys.argv[1])
         library=ctbb_plib(config_dict['library'])
+        print(library.path)
 
     # Detailed logging setup
     # Writes to file in output library's log directory 
@@ -140,7 +141,10 @@ if __name__=="__main__":
     logging.info('Target study library: {}'.format(library.path))
     library.refresh_recon_list()
     recon_list=library.get_recon_list()
+    print(recon_list)
     job_list=create_job_list(recon_list)
+
+    print(job_list)
 
     # Submit the job list to condor
     condor_submit(job_list,library)
