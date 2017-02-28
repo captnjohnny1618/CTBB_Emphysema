@@ -1,2 +1,4 @@
 pilot_code/
 src/*.yml
+\#*
+.*
