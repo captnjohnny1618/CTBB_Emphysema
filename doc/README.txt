@@ -1,5 +1,8 @@
 CTBangBang Emphysema Pipeline Documentation
+John Hoffman
+Last Updated: 2017-02-28
 
+----------------------------------------
 Associated Software Packages:
 ----------------------------------------
 CTBangBang:          https://github.com/captnjohnny1618/CTBangBang
@@ -7,14 +10,17 @@ CTBangBang_Pipeline: https://github.com/captnjohnny1618/CTBB_Pipeline
 QIA:                 MedQIA image processing toolchain; not publicly available
 FreeCT:              https://github.com/FreeCT
 
+This package, as of the last update, only runs on Windows, due to the QIA dependency.
+
+----------------------------------------
 Overview:
 ----------------------------------------
 This set of tools is intended for Condor-cluster-based batch processing of CT image data reconstructed using the CTBangBang Pipeline.  Most tools are task-independent (i.e. not specific to emphysema scoring) and can be applied to a variety of desired imaging tasks.
 
-All individual processing modules are designed in the same manner and have three components:
+All processing modules are designed in the same manner and have three components:
 
-(1) Script to perform task on one reconstruction condition.  This will be called the "task script."
-(2) Script to automate job generation and condor submission.  This will be called the "pipeline script."
+(1) Script to perform required task on one reconstruction condition.  This will be called the "task script." This script is used by (2) to carry out the required task.
+(2) Script to automate job generation (i.e. command line calls for (1)) and condor submission.  This will be called the "pipeline script."
 (3) Configuration file handling and job customization for the pipeline script.
 
 The modules included in this package as of 2/28/2017 are:
@@ -26,6 +32,21 @@ The modules included in this package as of 2/28/2017 are:
 
 Each module is designed to operate on a CTBangBang Pipeline "Library." This is a specific directory structure.  For the purposes of this document, we will assume this corresponds to an environment variable CTBB_PLIB (i.e. we can reference it using $(CTBB_PLIB))
 
+----------------------------------------
+Sample execution of full emphysema scoring pipeline for a libary:
+----------------------------------------
+Assumes we have already run reconstruction pipeline in its entirety.
+
+Reconstructions are stored in: /path/to/CTBangBang_Pipeline_Study/library/
+
+After each command, wait to ensure condor execution has completed.
+
+user@node$ python ctbb_pipeline_convert.py ../convert_config.yml
+user@node$ python ctbb_pipeline_segment.py ../segment_config.yml
+user@node$ python ctbb_pipeline_histogram.py ../histogram_config.yml
+user@node$ python ctbb_pipeline_emphysema.py ../emphysema_config.yml
+
+----------------------------------------
 Configuration files:
 ----------------------------------------
 All "pipeline scripts" (script type (2) above) accept a configuration file as their only input.  This configuration file is written in YAML and contains any information needed to perform and/or customize the desired task.
@@ -38,6 +59,7 @@ If a user wished, simply running the modules in the order (i)-(iv) would complet
 
 Some modules accept other information in the configuration file to customize the task. For instance, the segmentation module can intelligently apply segmentations performed on smooth reconstructions to the sharp/noisy reconstructions via a "parent_seg:" YAML block.  See the sample configuration files contained in the doc/samples/ directory of this project to see module-specific customization options.  
 
+----------------------------------------
 Modules (details):
 ----------------------------------------
 
