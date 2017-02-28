@@ -28,6 +28,7 @@ with open('paths.yml','w') as f:
     f.write("segmentation_script: \\\skynet\cvib\PechinTest2\scripts\segment_hr2_file.py\n")
     f.write("conversion_script: \\\skynet\cvib\PechinTest2\scripts\convert_img_file.py\n")
     f.write("histogram_script: \\\skynet\cvib\PechinTest2\scripts\calculate_histogram.py\n")
+    f.write("emphysema_score_script: \\\skynet\cvib\PechinTest2\scripts\score_emphysema.py\n")
     
     # QIA Library path
     # Specify location of QIA library

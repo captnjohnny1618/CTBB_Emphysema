@@ -116,7 +116,7 @@ if __name__=="__main__":
         print("No configuration file provided.") # note: cannot use logging yet since not configured
         sys.exit("Exiting.")
     else:            
-        parse_config(sys.argv[1])
+        config_dict=parse_config(sys.argv[1])
         library=ctbb_plib(config_dict['library'])
 
     # Detailed logging setup
