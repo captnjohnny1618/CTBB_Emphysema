@@ -123,17 +123,24 @@ if __name__=="__main__":
             emphysema_result_filepath=os.path.join(qi_raw_dirpath,"results_emphysema.yml")
 
             # Open the results file for the particular parameter configuration
-            with open(emphysema_result_filepath,'r') as fid:
-                # Generate the results string for the parameter configuration
-                # (i.e. dict -> csv format) and write to disk
+            print(emphysema_result_filepath)
+            if os.path.exists(emphysema_result_filepath):
+                with open(emphysema_result_filepath,'r') as fid:
+                    # Generate the results string for the parameter configuration
+                    # (i.e. dict -> csv format) and write to disk
                 
-                results_dict=yaml.load(fid)
-                results_string="{},{},{},{},{},{}".format(recon['pipeline_id'],
-                                        recon['dose'],
-                                        recon['kernel'],
-                                        recon['slice_thickness'],
-                                        ",".join([str(results_dict[k]) for k in keys]),
-                                        recon['org_raw_filepath'])
-                out_fid.write(results_string+"\n")
+                    results_dict=yaml.load(fid)                
+            else:
+                results_dict=dict.fromkeys(keys)
+
+            #print(results_dict)
+                
+            results_string="{},{},{},{},{},{}".format(recon['pipeline_id'],
+                                    recon['dose'],
+                                    recon['kernel'],
+                                    recon['slice_thickness'],
+                                    ",".join([str(results_dict[k]) for k in keys]),
+                                    recon['org_raw_filepath'])
+            out_fid.write(results_string+"\n")
 
     logging.info("Results compilation complete.")
