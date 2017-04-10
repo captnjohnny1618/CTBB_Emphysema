@@ -22,7 +22,7 @@ ref_dose=100
 # Plot info 
 plot_style='error_bars' # choices are 'raw' or 'error_bars'
 #plot_ylims='auto'       # 'auto' or tuple
-plot_ylims= (-0.075,.35)       # 'auto' or tuple
+plot_ylims= (-0.075,.45)       # 'auto' or tuple
 markers=itertools.cycle(('o','^','s'))
 
 # Output information
@@ -40,9 +40,9 @@ def gen_figure(data,var_y_axis,var_x_axis,var_series,var_plots,plot_type='raw'):
         'dose':'% Clinical CTDIvol',
         'slice_thickness':'Slice Thickness',
         'kernel':'kernel',
-        '950':'RA950',
-        '920':'RA920',
-        '910':'RA910'
+        'RA950':'RA950',
+        'RA920':'RA920',
+        'RA910':'RA910'
         }
 
     kernel_label_dict={
@@ -147,7 +147,7 @@ def gen_figure(data,var_y_axis,var_x_axis,var_series,var_plots,plot_type='raw'):
             plot_count+=1
         
     for a in ax:
-        a.set_xlim(20,105)
+        a.set_xlim(0,105)
         if plot_ylims!='auto':
             a.set_ylim(plot_ylims)
 
@@ -162,7 +162,15 @@ if __name__=="__main__":
 
     results_file=sys.argv[1]
 
-    data=np.genfromtxt(results_file,dtype=float,delimiter=',',names=True)
+    ndtype=[('pipeline_id',str),('id',str),('dose',float),('kernel',float),('slice_thickness',float),
+            ('RA-900',float),('RA-910',float),('RA-920',float),('RA-930',float),('RA-940',float),
+            ('RA-950',float),('RA-960',float),('RA-970',float),('RA-980',float),('PERC10',float),
+            ('PERC15',float),('PERC20',float),('median',float),('mean',float),('volume',float)]
+    
+    data=np.genfromtxt(results_file,dtype=None,delimiter=',',names=True)
+    #data_string=np.genfromtxt(results_file,dtype=None,delimiter=',',names=True)
+
+    #print(data_string[1:20])
 
     # Reference values are 100% dose, 5.0 mm slice thickness, smooth kernel reconstruction
     refs = data[data['kernel']==ref_kernel]
@@ -173,22 +181,23 @@ if __name__=="__main__":
 
     # Calculate our differences
     for l in np.nditer(diffs,op_flags=['readwrite']):
+        print(l)
+        
         # Find the reference for the current row
         curr_patient=l['id']
         curr_ref=refs[refs['id']==curr_patient] 
 
-        # Calculate the differences and store back to the array
+        # calculate the differences and store back to the array
+        
         l[...]['mean']   = l['mean']-curr_ref['mean']
         l[...]['median'] = l['median']-curr_ref['median']        
-        l[...]['950']    = l['950']-curr_ref['950']
-        l[...]['920']    = l['920']-curr_ref['920']
-        l[...]['910']    = l['910']-curr_ref['910']
-        l[...]['15']     = l['15']-curr_ref['15']
-        l[...]['20']     = l['20']-curr_ref['20']                        
+        l[...]['RA950']  = l['RA950']-curr_ref['RA950']
+        l[...]['RA920']  = l['RA920']-curr_ref['RA920']
+        l[...]['RA910']  = l['RA910']-curr_ref['RA910']
+        l[...]['PERC15'] = l['PERC15']-curr_ref['PERC15']
+        l[...]['PERC20'] = l['PERC20']-curr_ref['PERC20']                        
         l[...]['volume'] = l['volume']-curr_ref['volume']
 
     # For a fixed recon condition (s.t., kernel) plot the change in recon variable
     #gen_figure(data,var_y_axis,var_x_axis,var_series,var_plots,plot_type='raw'||'error_bars'):    
-    gen_figure(diffs,'950','dose','kernel','slice_thickness',plot_type=plot_style)
-
-
+    gen_figure(diffs,'RA950','dose','kernel','slice_thickness',plot_type=plot_style)

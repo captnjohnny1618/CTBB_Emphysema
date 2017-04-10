@@ -31,7 +31,7 @@ def emphysema_differences(data,patient,emphysema_measure):
 
     print(str(patient) + " , " + str(minimum) + " , " + str(maximum) + " , " + str(diff) +  " , " + str(scores.mean()) +" , "  + str(np.median(scores)))
 
-def emphysema_surfaces(data,patient,emphysema_measure):
+def emphysema_surfaces(data,patient,emphysema_measure,output_dir):
     # This function generates surface plots of emphysema scores for a
     # given patient
 
@@ -52,7 +52,7 @@ def emphysema_surfaces(data,patient,emphysema_measure):
     vals['slice_thickness'] = np.unique(data['slice_thickness'])
     vals['dose']            = np.unique(data['dose'])    
     vals['kernel']          = np.unique(data['kernel'])
-    
+
     n={}
     n['slice_thickness'] = len(vals['slice_thickness'])
     n['dose']            = len(vals['dose'])
@@ -65,7 +65,7 @@ def emphysema_surfaces(data,patient,emphysema_measure):
         
         cmap = plt.get_cmap('jet')
         colors = cmap(np.linspace(0, 1, n[hold_constant]))
-        
+
         for i, c in zip(vals[hold_constant],colors):
             data_1=data[data[hold_constant]==i]
             if hold_constant=='slice_thickness':
@@ -76,11 +76,15 @@ def emphysema_surfaces(data,patient,emphysema_measure):
                 lab=('Perc. Dose {}'.format(str(i)));
             else:
                 pass
+
+            print(data_1[x].reshape(n[y],n[x])
+
                 
             ax.plot_wireframe(data_1[x].reshape(n[y],n[x]),data_1[y].reshape(n[y],n[x]),data_1[emphysema_measure].reshape(n[y],n[x]),linewidth=1,color=c,label=lab)
+            
         ax.set_xlabel(x)
         ax.set_ylabel(y)
-        ax.set_title("Patient %d; RA%s" %(patient,emphysema_measure))
+        ax.set_title("Patient {}; {}".format(patient,emphysema_measure))
         ax.legend(bbox_to_anchor=(1,.91))
         ax.set_zlim3d(0,0.5)
 
@@ -95,21 +99,26 @@ def emphysema_surfaces(data,patient,emphysema_measure):
         elif hold_constant=='dose':
             ax.view_init(elev=18,azim=40)            
         else:
-            pass        
+            pass
 
     gen_plot('kernel','slice_thickness','dose',1)
     gen_plot('slice_thickness','dose','kernel',2)
     gen_plot('dose','slice_thickness','kernel',3)
 
     #plt.show()
-    plt.savefig('emphy_surfaces_patient_{}.png'.format(patient),bbox_inches='tight',dpi=200);
+    plt.savefig(os.path.join(output_dir,'emphy_surfaces_patient_{}.png'.format(patient)),bbox_inches='tight',dpi=200);
     
 if __name__=="__main__":
     # CL argument is the results files containing the emphysema data
 
     results_file=sys.argv[1]
 
-    data=np.genfromtxt(results_file,dtype=float,delimiter=',',names=True)
+    if len(sys.argv)<2:        
+        output_dir=os.getcwd()
+    else:
+        output_dir=sys.argv[2]
+
+    data=np.genfromtxt(results_file,dtype=None,delimiter=',',names=True)
 
     # Each patient has the following measures in the results file:
     #
@@ -124,11 +133,8 @@ if __name__=="__main__":
     # 
     # These are given for each patient, dose, kernel, and slice_thickness
 
-    print('Patient,Min,Max,Range,Mean,Median')
-    #for i in range(1,11):
-    for i in range(1,11):
-        emphysema_surfaces(data,i,'950')
+    for i in np.unique(data['id']):
+        emphysema_surfaces(data,i,'RA950',output_dir)
         
-
 #        emphysema_differences(data,i,'950')
 #
