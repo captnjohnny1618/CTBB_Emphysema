@@ -68,6 +68,9 @@ def emphysema_surfaces(data,patient,emphysema_measure,output_dir):
 
         for i, c in zip(vals[hold_constant],colors):
             data_1=data[data[hold_constant]==i]
+
+            data_1.sort(order=['dose','kernel','slice_thickness'],axis=0)
+            
             if hold_constant=='slice_thickness':
                 lab=('S.T. {}mm'.format(str(i)));
             elif hold_constant=='kernel':
@@ -77,14 +80,18 @@ def emphysema_surfaces(data,patient,emphysema_measure,output_dir):
             else:
                 pass
 
-            print(data_1[x].reshape(n[y],n[x])
-
+            mesh_1=data_1[x].reshape(n[y],n[x])
+            mesh_2=data_1[y].reshape(n[y],n[x])
+            mesh_3=data_1[emphysema_measure].reshape(n[y],n[x])
                 
-            ax.plot_wireframe(data_1[x].reshape(n[y],n[x]),data_1[y].reshape(n[y],n[x]),data_1[emphysema_measure].reshape(n[y],n[x]),linewidth=1,color=c,label=lab)
+            ax.plot_wireframe(mesh_1,mesh_2,mesh_3,linewidth=1,color=c,label=lab)
             
         ax.set_xlabel(x)
         ax.set_ylabel(y)
-        ax.set_title("Patient {}; {}".format(patient,emphysema_measure))
+        p=patient.decode("UTF-8")
+        p=p.replace("17007_SCMP2DFA","").replace(".ptr","")
+
+        ax.set_title("Patient {}; {}".format(p,emphysema_measure))
         ax.legend(bbox_to_anchor=(1,.91))
         ax.set_zlim3d(0,0.5)
 
@@ -102,11 +109,15 @@ def emphysema_surfaces(data,patient,emphysema_measure,output_dir):
             pass
 
     gen_plot('kernel','slice_thickness','dose',1)
-    gen_plot('slice_thickness','dose','kernel',2)
+    gen_plot('dose','slice_thickness','kernel',2)
     gen_plot('dose','slice_thickness','kernel',3)
 
+    p=patient.decode("UTF-8")
+    p=p.replace("17007_SCMP2DFA","").replace(".ptr","")
+    print(p)
+
     #plt.show()
-    plt.savefig(os.path.join(output_dir,'emphy_surfaces_patient_{}.png'.format(patient)),bbox_inches='tight',dpi=200);
+    plt.savefig(os.path.join(output_dir,'emphy_surfaces_patient_{}.png'.format(p)),bbox_inches='tight',dpi=200);
     
 if __name__=="__main__":
     # CL argument is the results files containing the emphysema data
