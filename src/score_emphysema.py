@@ -100,6 +100,7 @@ if __name__=="__main__":
 
     # Relative area/volume (RA) Scoring
     results={}
+    results["RA-856"] = get_ra(histogram,-856)
     results["RA-900"] = get_ra(histogram,-900)
     results["RA-910"] = get_ra(histogram,-910)
     results["RA-920"] = get_ra(histogram,-920)
@@ -109,6 +110,9 @@ if __name__=="__main__":
     results["RA-960"] = get_ra(histogram,-960)
     results["RA-970"] = get_ra(histogram,-970)
     results["RA-980"] = get_ra(histogram,-980)
+
+    # Range calculations (for COPD studies)
+    results["Range-950-856"] = get_ra(histogram,-856)-get_ra(histogram,-950)
     
     # Percentile calculations
     results["PERC10"] = perc.percentile(0.10)    
