@@ -141,10 +141,10 @@ if __name__=="__main__":
     logging.info('Target study library: {}'.format(library.path))
     library.refresh_recon_list()
     recon_list=library.get_recon_list()
-    print(recon_list)
+    print(len(recon_list))
     job_list=create_job_list(recon_list)
 
-    print(job_list)
+    print(len(job_list))
 
     # Submit the job list to condor
     condor_submit(job_list,library)
