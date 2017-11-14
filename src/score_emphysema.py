@@ -9,9 +9,10 @@ path_file='\\\skynet\cvib\PechinTest2\scripts\paths.yml'
 def usage():
     print(
         "USAGE:\n"
-        "python score_emphysema.py /path/to/histogram_file.yml\n"
+        "python score_emphysema.py /path/to/hr2file.hr2 /path/to/seg/dir\n"
         "    Paths, ideally, are absolute however they may be relative as well. This could\n"
         "    create challenges if using Condor.\n"
+        "    ***Note that seg/dir should NOT end with a slash***"
         )
 
 def configure_pipeline():
@@ -64,6 +65,8 @@ if __name__=="__main__":
     configure_pipeline()
     hr2_filepath       = sys.argv[1]
     seg_dirpath        = sys.argv[2]
+    print(hr2_filepath)
+    print(seg_dirpath)
     qa_path            = os.path.join(os.path.dirname(seg_dirpath),"qa")
     qi_raw_dirpath     = os.path.join(os.path.dirname(seg_dirpath),"qi_raw")
     histogram_filepath = os.path.join(qi_raw_dirpath,"histogram_lung.yml")    
@@ -125,6 +128,7 @@ if __name__=="__main__":
     results["volume"] = perc.num()*(spacing[0]*spacing[1]*spacing[2])
 
     # Kurtosis
+    import numpy as np
     names=['voxel_val','count']
     formats=['float64','float64']
     dtype=dict(names=names,formats=formats)
