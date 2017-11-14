@@ -5,6 +5,8 @@ import logging
 import yaml
 from time import strftime
 
+path_file='\\\skynet\cvib\PechinTest2\scripts\paths.yml'
+
 def parse_config(config_filepath):
     ### Function to parse the config file passed at the command line
     ### config_filepath is the path to the configuration file passed at the command line
@@ -32,7 +34,7 @@ def configure_pipeline():
     global paths
     
     # Load the paths.yml file
-    with open('paths.yml','r') as f:
+    with open(path_file,'r') as f:
         logging.info('Using paths.yml from: '.format(f.name))
         paths=yaml.load(f)
 

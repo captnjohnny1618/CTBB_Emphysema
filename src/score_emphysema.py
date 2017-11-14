@@ -52,7 +52,6 @@ def get_ra(histogram, threshold):
         total += v
     return laa/total
 
-
 if __name__=="__main__":
     logging.basicConfig(level=logging.INFO)
     
@@ -125,6 +124,22 @@ if __name__=="__main__":
     results["mean"]   = image.get_statistics_calculator(lung).mean()
     results["volume"] = perc.num()*(spacing[0]*spacing[1]*spacing[2])
 
+    # Kurtosis
+    names=['voxel_val','count']
+    formats=['float64','float64']
+    dtype=dict(names=names,formats=formats)
+    hist_array=np.array(list(histogram.items()),dtype=dtype)
+    counts=np.sum(hist_array['count'])
+    raw=np.array([])
+    for element in hist_array:
+        vals=element[0]*np.ones((int(element[1])),dtype='float64')
+        raw=np.concatenate((raw,vals),axis=0)
+
+    from scipy.stats import kurtosis,kurtosistest
+    kurt=kurtosis(raw)
+    print(kurt,kurtosistest(raw))
+    results["kurtosis"] = kurt
+                    
     # Save the results to disk
     with open(output_filepath,'w') as f:
         yaml.dump(results,f,default_flow_style=False)
