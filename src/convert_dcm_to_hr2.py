@@ -14,8 +14,24 @@ sys.path.append(qia_path)
 print("Added {} QIA path: {}".format(p,qia_path));
 
 # QIA imports
-#from qia.common.img import file as qfile
 from qia.common.img import image as qimage
+
+def main(argc,argv):
+    
+    input_dirpath=argv[1]
+    output_filepath=argv[2]
+    
+    print('Loading DICOM stack...')
+    dcm_stack=qimage.read(input_dirpath)
+
+    print('Saving DICOM stack as HR2...')
+    dcm_stack.write(output_filepath)
+
+    print('DONE')
+
+if __name__=="__main__":
+    main(len(sys.argv),sys.argv)
+
 
 
 
