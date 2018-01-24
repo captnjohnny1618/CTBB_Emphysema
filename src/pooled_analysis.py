@@ -22,14 +22,15 @@ ref_dose=100
 # Plot info 
 plot_style='error_bars' # choices are 'raw' or 'error_bars'
 #plot_ylims='auto'       # 'auto' or tuple
-plot_ylims= (-0.075,.45)       # 'auto' or tuple
+plot_ylims= (-0.075,.45)        # 'auto' or tuple RA-950: (-0.075,.45) PERC15:(-120,65)
+#plot_ylims=(-120,65)
 markers=itertools.cycle(('o','^','s'))
 
 # Output information
 display_fig=True
 save_fig=True
 save_format='png'
-outfile_name='950_ref_1.0_medium'
+outfile_name='RA950_ref_1.0_medium'
 save_dpi=600
 
 ########################################
@@ -42,7 +43,10 @@ def gen_figure(data,var_y_axis,var_x_axis,var_series,var_plots,plot_type='raw'):
         'kernel':'kernel',
         'RA950':'RA950',
         'RA920':'RA920',
-        'RA910':'RA910'
+        'RA910':'RA910',
+        'RA970':'RA970',        
+        'PERC15':'PERC15',
+        'PERC10':'PERC10'
         }
 
     kernel_label_dict={
@@ -161,6 +165,7 @@ if __name__=="__main__":
     # CL argument is the results files containing the emphysema data
 
     results_file=sys.argv[1]
+    reference_file=sys.argv[2]
 
     ndtype=[('pipeline_id',str),('id',str),('dose',float),('kernel',float),('slice_thickness',float),
             ('RA-900',float),('RA-910',float),('RA-920',float),('RA-930',float),('RA-940',float),
@@ -168,12 +173,13 @@ if __name__=="__main__":
             ('PERC15',float),('PERC20',float),('median',float),('mean',float),('volume',float)]
     
     data=np.genfromtxt(results_file,dtype=None,delimiter=',',names=True)
+    data_reference=np.genfromtxt(reference_file,dtype=None,delimiter=',',names=True)
     #data_string=np.genfromtxt(results_file,dtype=None,delimiter=',',names=True)
 
     #print(data_string[1:20])
 
     # Reference values are 100% dose, 5.0 mm slice thickness, smooth kernel reconstruction
-    refs = data[data['kernel']==ref_kernel]
+    refs = data_reference[data_reference['kernel']==ref_kernel]
     refs = refs[refs['slice_thickness']==ref_slice_thickness]
     refs = refs[refs['dose']==ref_dose]
 
@@ -194,6 +200,7 @@ if __name__=="__main__":
         l[...]['RA950']  = l['RA950']-curr_ref['RA950']
         l[...]['RA920']  = l['RA920']-curr_ref['RA920']
         l[...]['RA910']  = l['RA910']-curr_ref['RA910']
+        l[...]['PERC10'] = l['PERC10']-curr_ref['PERC10']
         l[...]['PERC15'] = l['PERC15']-curr_ref['PERC15']
         l[...]['PERC20'] = l['PERC20']-curr_ref['PERC20']                        
         l[...]['volume'] = l['volume']-curr_ref['volume']
