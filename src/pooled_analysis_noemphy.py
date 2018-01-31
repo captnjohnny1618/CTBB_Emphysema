@@ -25,11 +25,9 @@ ref_dose=100
 plot_style='error_bars' # choices are 'raw' or 'error_bars'
 markers=itertools.cycle(('o','^','s'))
 if metric=='PERC15':
-    #plot_ylims=(-120,65)
-    plot_ylims=(-150,80)    
+    plot_ylims=(-150,80)
 elif metric=='RA950':
-    #plot_ylims= (-0.075,.45)        # 'auto' or tuple RA-950: (-0.075,.45) PERC15:(-120,65)
-    plot_ylims= (-0.1,.6)
+    plot_ylims= (-0.1,.6)        # 'auto' or tuple RA-950: (-0.075,.45) PERC15:(-120,65)
 else:
     plot_ylims='auto'       # 'auto' or tuple
 
@@ -38,7 +36,7 @@ display_fig=False
 save_fig=True
 save_format='png'
 kernels={2.0:'medium',1.0:'smooth',3.0:'sharp'}
-outfile_name='{}_ref_1.0_{}'.format(metric,kernels[ref_kernel])
+outfile_name='{}_ref_1.0_{}_no_emphy'.format(metric,kernels[ref_kernel])
 save_dpi=600
 
 print("Metric:    {}".format(metric))
@@ -178,7 +176,7 @@ if __name__=="__main__":
 
     results_file=sys.argv[1]
     reference_file=sys.argv[2]
-    
+
     ndtype=[('pipeline_id',str),('id',str),('dose',float),('kernel',float),('slice_thickness',float),
             ('RA-900',float),('RA-910',float),('RA-920',float),('RA-930',float),('RA-940',float),
             ('RA-950',float),('RA-960',float),('RA-970',float),('RA-980',float),('PERC10',float),
@@ -188,13 +186,21 @@ if __name__=="__main__":
     data_reference=np.genfromtxt(reference_file,dtype=None,delimiter=',',names=True)
     #data_string=np.genfromtxt(results_file,dtype=None,delimiter=',',names=True)
 
-    #print(data_string[1:20])
-
     # Reference values are 100% dose, 5.0 mm slice thickness, smooth kernel reconstruction
     refs = data_reference[data_reference['kernel']==ref_kernel]
     refs = refs[refs['slice_thickness']==ref_slice_thickness]
     refs = refs[refs['dose']==ref_dose]
 
+    # Clean up data and reference values (elimate emphy cases)
+    clean_refs=np.copy(refs)
+    for r in refs:
+        if r['RA950']>=0.05:
+            pipe_id    = r['id'];
+            data       = data[data['id']!=pipe_id]
+            clean_refs = clean_refs[clean_refs['id']!=pipe_id]
+
+    refs=clean_refs
+    #print(refs.shape)
     diffs=np.copy(data)
 
     # Calculate our differences
@@ -203,10 +209,9 @@ if __name__=="__main__":
         
         # Find the reference for the current row
         curr_patient=l['id']
-        curr_ref=refs[refs['id']==curr_patient] 
+        curr_ref=refs[refs['id']==curr_patient]
 
-        # calculate the differences and store back to the array
-        
+        # calculate the differences and store back to the array        
         l[...]['mean']   = l['mean']-curr_ref['mean']
         l[...]['median'] = l['median']-curr_ref['median']        
         l[...]['RA950']  = l['RA950']-curr_ref['RA950']

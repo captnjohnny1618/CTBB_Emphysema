@@ -14,7 +14,7 @@ import itertools
 # underlying code in the future)
 ########################################
 
-metric=sys.argv[3]
+metric='NA'
 
 # Reference condition
 ref_kernel=2.0
@@ -38,7 +38,7 @@ display_fig=False
 save_fig=True
 save_format='png'
 kernels={2.0:'medium',1.0:'smooth',3.0:'sharp'}
-outfile_name='{}_ref_1.0_{}'.format(metric,kernels[ref_kernel])
+outfile_name='{}_ref_1.0_{}_emphy_only_10'.format(metric,kernels[ref_kernel])
 save_dpi=600
 
 print("Metric:    {}".format(metric))
@@ -178,7 +178,7 @@ if __name__=="__main__":
 
     results_file=sys.argv[1]
     reference_file=sys.argv[2]
-    
+
     ndtype=[('pipeline_id',str),('id',str),('dose',float),('kernel',float),('slice_thickness',float),
             ('RA-900',float),('RA-910',float),('RA-920',float),('RA-930',float),('RA-940',float),
             ('RA-950',float),('RA-960',float),('RA-970',float),('RA-980',float),('PERC10',float),
@@ -188,35 +188,40 @@ if __name__=="__main__":
     data_reference=np.genfromtxt(reference_file,dtype=None,delimiter=',',names=True)
     #data_string=np.genfromtxt(results_file,dtype=None,delimiter=',',names=True)
 
-    #print(data_string[1:20])
-
     # Reference values are 100% dose, 5.0 mm slice thickness, smooth kernel reconstruction
     refs = data_reference[data_reference['kernel']==ref_kernel]
     refs = refs[refs['slice_thickness']==ref_slice_thickness]
     refs = refs[refs['dose']==ref_dose]
 
-    diffs=np.copy(data)
+    np.savetxt('reference_ref_1.0_{}.csv'.format(kernels[ref_kernel]),refs,'%s',delimiter=',',header='id,dose,kernel,slice_thickness,RA900,RA910,RA920,RA930,RA940,RA950,RA960,RA970,RA980,PERC10,PERC15,PERC20,median,mean,volume,org_filepath')
 
-    # Calculate our differences
-    for l in np.nditer(diffs,op_flags=['readwrite']):
-        #print(l)
+    # Save key info about dataset to disk
+    with open('summary_data_ref_1.0_{}.yaml'.format(kernels[ref_kernel]),'w') as f:
+        f.write('Total: {}\n'.format(refs.shape))
+
+        # Get info about <0.05 RA950 cases
+        clean_refs=np.copy(refs)
+        for r in refs:
+            if r['RA950']>=0.05:
+                pipe_id    = r['id'];
+                clean_refs = clean_refs[clean_refs['id']!=pipe_id]
+
+        f.write('Total(<0.05): {}\n'.format(clean_refs.shape));
+
+        # Get info about >0.05 & <0.10 RA950 cases
+        clean_refs=np.copy(refs)
+        for r in refs:
+            if r['RA950']<0.05 or r['RA950']>=0.10:
+                pipe_id    = r['id'];
+                clean_refs = clean_refs[clean_refs['id']!=pipe_id]
+
+        f.write('Total(>0.05 and <=0.10): {}\n'.format(clean_refs.shape));
         
-        # Find the reference for the current row
-        curr_patient=l['id']
-        curr_ref=refs[refs['id']==curr_patient] 
+        # Get info about >=0.10 RA950 cases
+        clean_refs=np.copy(refs)
+        for r in refs:
+            if r['RA950']<=0.1:
+                pipe_id    = r['id'];
+                clean_refs = clean_refs[clean_refs['id']!=pipe_id]
 
-        # calculate the differences and store back to the array
-        
-        l[...]['mean']   = l['mean']-curr_ref['mean']
-        l[...]['median'] = l['median']-curr_ref['median']        
-        l[...]['RA950']  = l['RA950']-curr_ref['RA950']
-        l[...]['RA920']  = l['RA920']-curr_ref['RA920']
-        l[...]['RA910']  = l['RA910']-curr_ref['RA910']
-        l[...]['PERC10'] = l['PERC10']-curr_ref['PERC10']
-        l[...]['PERC15'] = l['PERC15']-curr_ref['PERC15']
-        l[...]['PERC20'] = l['PERC20']-curr_ref['PERC20']                        
-        l[...]['volume'] = l['volume']-curr_ref['volume']
-
-    # For a fixed recon condition (s.t., kernel) plot the change in recon variable
-    #gen_figure(data,var_y_axis,var_x_axis,var_series,var_plots,plot_type='raw'||'error_bars'):    
-    gen_figure(diffs,metric,'dose','kernel','slice_thickness',plot_type=plot_style)
+        f.write('Total(>=0.10): {}\n'.format(clean_refs.shape));
