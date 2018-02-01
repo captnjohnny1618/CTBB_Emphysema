@@ -76,6 +76,14 @@ def main(argc,argv):
     results_csv = sys.argv[1]
     refs_csv    = sys.argv[2]
 
+    if argc==4:
+        output_dir = argv[3]
+        if os.path.isdir(output_dir):
+            save_flag=True
+        else:
+            print('Cannot find requested output directory.  Exiting.')
+            sys.exit(1)
+
     # Define the reference case
     ref_kernel          = 1.0
     ref_slice_thickness = 1.0
@@ -155,6 +163,7 @@ def main(argc,argv):
     t.set_cols_width([7,10,10,10,10,10,10,10,10,10])
 
     # Configure our dataframe that we'll use to generate our heatmap
+    row_annotations=[]
     final_results=pd.DataFrame()
 
     for i in range(len(doses)):
@@ -234,7 +243,7 @@ def main(argc,argv):
                 if conf[1]<0.05:
                     res_dict['color']=3 #'g'
                 elif conf[1]>=0.05 and conf[0]<=0.05:
-                    res_dict['color']=2 #'y'
+                    res_dict['color']=2.1 #'y'
                 elif conf[1]>=0.06 and conf[0]<=0.06:
                     res_dict['color']=1.66 #'y'
                 elif conf[1]>=0.07 and conf[0]<=0.07:
@@ -246,19 +255,38 @@ def main(argc,argv):
 
         # Push complete rows into final results tables
         t.add_row(row);
+        row_annotations.append(row[1:])
         final_results=final_results.append(df_row,ignore_index=True)
-        
+
+    row_annotations=row_annotations[::-1]
+    row_annotations=pd.DataFrame(row_annotations)
     table_plaintext=t.draw()
     print(table_plaintext)
 
     # Prep heatmap
+    from matplotlib.colors import LinearSegmentedColormap
+    #193, 80, 0 orange
+    #239, 209, 74 yellow
+    #123, 178, 71 green
+    colors=[(229.0/255, 181.0/255, 149.0/255) , (229.0/255, 222.0/255, 149.0/255),(188.0/255, 229.0/255, 149.0/255)]
+    cmap_name = 'dissertation'
+    cm = LinearSegmentedColormap.from_list(cmap_name, colors, N=5)
+    
+    tick_labels=['\n\nSmooth','Slice 0.6\n\nMedium','\n\nSharp','\n\nSmooth','Slice 1.0\n\nMedium','\n\nSharp','\n\nSmooth','Slice 2.0\n\nMedium','\n\nSharp']
     final_results=final_results.sort_values('dose',ascending=False)
     final_results=final_results.pivot(index='dose',columns='un_idx',values='color')
-    sns.heatmap(final_results,cmap='RdYlGn',linewidths=0.5)
+    f = plt.figure(figsize=(12,5))
+    ax=sns.heatmap(final_results,cmap=cm,linewidths=0.5,xticklabels=tick_labels,annot=row_annotations,cbar=False)
+    ax.set_xticklabels(tick_labels,rotation=90)
+    ax.invert_yaxis()
+    ax.xaxis.tick_top()
+    ax.set_xlabel('')
 
     # Show the heatmap
-    plt.ylim(100,10)
-    plt.show()
+    if save_flag:
+        plt.savefig(os.path.join(output_dir,'heat_map.png'),bbox_inches='tight',dpi=600)
+        
+    #plt.show()
     pass
     
     
