@@ -32,18 +32,15 @@ pd.set_option('expand_frame_rep',False)
 # PERC15
 
 def usage():
-
-    print(
-"""
-Usage: multiple_regression.py /path/to/results_file.csv /path/to/reference_file.csv
-
-NOTE: This file is built for the analysis of John's dissertation data
-      and should most likely not be used directly, without modification,
-      for any other regression analysis.
-
-Copyright (c) John Hoffman 2018
-"""
-        )
+    print("""
+          Usage: multiple_regression.py /path/to/results_file.csv /path/to/reference_file.csv
+          
+          NOTE: This file is built for the analysis of John's dissertation data
+                and should most likely not be used directly, without modification,
+                for any other regression analysis.
+          
+          Copyright (c) John Hoffman 2018
+          """)
 
 def main(argc,argv):
     results_csv = sys.argv[1]
@@ -120,16 +117,19 @@ def main(argc,argv):
     #lm = smf.ols('RA950 ~ C(kernel) + dose + slice_thickness', data = diffs).fit()
     #print(lm.summary())
 
-    # Set up dummy variables for kernel (Allows us to make more careful comparison, maybe? results seem to be the same)
+    # Set up dummy variables for kernel. This approach allows us to
+    # make more careful comparison, maybe? Results seem to be the
+    # same, however at the very least, the naming scheme makes the
+    # coefficient reporting easier to interpret.
     diffs['kernel_smooth'] = np.where(diffs.kernel == 1, 2.0 / 3, -1.0 / 3)
     diffs['kernel_medium'] = np.where(diffs.kernel == 2, 2.0 / 3, -1.0 / 3)
     diffs['kernel_sharp']  = np.where(diffs.kernel == 3, 2.0 / 3, -1.0 / 3)
-    #print(diffs.groupby(["kernel","kernel_smooth","kernel_medium","kernel_sharp"]).size())
+    #print(diffs.groupby(["kernel","kernel_smooth","kernel_medium","kernel_sharp"]).size())    
     
     lm = smf.ols('RA950 ~ kernel_medium + kernel_sharp + dose + slice_thickness', data = diffs).fit()
     print(lm.summary())
 
-    ### Interaction terms ========================================
+    ### Models with interaction terms ========================================
     diffs["dosexslice_thickness"] = diffs.dose * diffs.slice_thickness
     diffs["dosexkernel_medium"]   = diffs.dose * diffs.kernel_medium
     diffs["dosexkernel_sharp"]    = diffs.dose * diffs.kernel_sharp
@@ -140,7 +140,13 @@ def main(argc,argv):
     diffs["slice_thicknessxkernel_mediumxdose"] = diffs.slice_thickness * diffs.kernel_medium * diffs.dose
     diffs["slice_thicknessxkernel_sharpxdose"]  = diffs.slice_thickness * diffs.kernel_sharp  * diffs.dose    
 
+    # This model includes all interaction terms and has collinearity problems
     lm = smf.ols('RA950 ~ kernel_medium + kernel_sharp + dose + slice_thickness + dosexslice_thickness + dosexkernel_medium + dosexkernel_sharp + slice_thicknessxkernel_medium + slice_thicknessxkernel_sharp + slice_thicknessxkernel_mediumxdose + slice_thicknessxkernel_sharpxdose', data = diffs).fit()
+    print(lm.summary())
+    
+    # This model includes all two-variable interaction terms however
+    # omits the higher-order terms.  This does not throw collinearity
+    # warnings.
     lm = smf.ols('RA950 ~ kernel_medium + kernel_sharp + dose + slice_thickness + dosexslice_thickness + dosexkernel_medium + dosexkernel_sharp + slice_thicknessxkernel_medium + slice_thicknessxkernel_sharp', data = diffs).fit()    
     print(lm.summary())
     
@@ -178,44 +184,3 @@ if __name__=="__main__":
         sys.exit()
 
     main(len(sys.argv),sys.argv)
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-if True:
-    sys.exit()
-
-
-ndtype=[('pipeline_id',str),('id',str),('dose',float),('kernel',float),('slice_thickness',float),
-        ('RA-900',float),('RA-910',float),('RA-920',float),('RA-930',float),('RA-940',float),
-        ('RA-950',float),('RA-960',float),('RA-970',float),('RA-980',float),('PERC10',float),
-        ('PERC15',float),('PERC20',float),('median',float),('mean',float),('volume',float)]
-
-data           = np.genfromtxt(results_file,dtype=None,delimiter=',',names=True)
-data_reference = np.genfromtxt(reference_file,dtype=None,delimiter=',',names=True)
-
-# Reference values are 100% dose, 5.0 mm slice thickness, smooth kernel reconstruction
-refs = data_reference[data_reference['kernel']==ref_kernel]
-refs = refs[refs['slice_thickness']==ref_slice_thickness]
-refs = refs[refs['dose']==ref_dose]
-
-# Test data
-test = data[data['kernel']==test_kernel]
-test = test[test['slice_thickness']==test_slice_thickness]
-test = test[test['dose']==test_dose]
-
-refs.sort(order='id')
-test.sort(order='id')
-
-refs=refs['RA950']
-test=test['RA950']
