@@ -46,6 +46,17 @@ def main(argc,argv):
     results_csv = sys.argv[1]
     refs_csv    = sys.argv[2]
 
+    save_flag=False
+    if argc==4:
+        output_dir = argv[3]
+        if os.path.isdir(output_dir):
+            save_flag=True
+            stdout=sys.stdout
+            sys.stdout=open(os.path.join(output_dir,'regression_results.txt'),'w')
+        else:
+            print('Cannot find requested output directory.  Exiting.')
+            sys.exit(1)
+
     # Define the reference case
     ref_kernel          = 1.0
     ref_slice_thickness = 1.0
@@ -55,8 +66,8 @@ def main(argc,argv):
     # Note that the CSV files have headers, and therefor columns can be
     # addressed using commands like results['RA-950'] or results['id']
     printf('Loading data... ')
-    results_org = pd.read_csv(results_csv)
-    refs_org    = pd.read_csv(refs_csv)
+    results_org = pd.read_csv(results_csv,na_values='None')
+    refs_org    = pd.read_csv(refs_csv,na_values='None')
     print('DONE')
     
     # Generate the reference array
@@ -124,6 +135,9 @@ def main(argc,argv):
     diffs['kernel_smooth'] = np.where(diffs.kernel == 1, 2.0 / 3, -1.0 / 3)
     diffs['kernel_medium'] = np.where(diffs.kernel == 2, 2.0 / 3, -1.0 / 3)
     diffs['kernel_sharp']  = np.where(diffs.kernel == 3, 2.0 / 3, -1.0 / 3)
+    #diffs['kernel_smooth'] = np.where(diffs.kernel == 1, 1, 0)
+    #diffs['kernel_medium'] = np.where(diffs.kernel == 2, 1, 0)
+    #diffs['kernel_sharp']  = np.where(diffs.kernel == 3, 1, 0)
     #print(diffs.groupby(["kernel","kernel_smooth","kernel_medium","kernel_sharp"]).size())    
     
     lm = smf.ols('RA950 ~ kernel_medium + kernel_sharp + dose + slice_thickness', data = diffs).fit()
@@ -149,6 +163,9 @@ def main(argc,argv):
     # warnings.
     lm = smf.ols('RA950 ~ kernel_medium + kernel_sharp + dose + slice_thickness + dosexslice_thickness + dosexkernel_medium + dosexkernel_sharp + slice_thicknessxkernel_medium + slice_thicknessxkernel_sharp', data = diffs).fit()    
     print(lm.summary())
+
+    if save_flag:
+        sys.stdout=stdout
     
     pass
 

@@ -93,8 +93,8 @@ def main(argc,argv):
     # Note that the CSV files have headers, and therefor columns can be
     # addressed using commands like results['RA-950'] or results['id']
     printf('Loading data... ')
-    results_org = pd.read_csv(results_csv)
-    refs_org    = pd.read_csv(refs_csv)
+    results_org = pd.read_csv(results_csv,na_values='None')
+    refs_org    = pd.read_csv(refs_csv,na_values='None')
     print('DONE')
     
     # Generate the reference array
@@ -118,13 +118,14 @@ def main(argc,argv):
     # Generate the difference array
     printf('Generating difference data... ')
     diffs=results_org.copy()
+    diffs.fillna(value=np.nan,inplace=True)
     for idx,l in diffs.iterrows():
 
         # Find the reference for the current row
         curr_patient=l['id']
         curr_ref=refs[refs['id']==curr_patient]
 
-        diffs.at[idx,'mean'  ] = l['mean']  -curr_ref['mean'  ]
+        diffs.at[idx,'mean'  ] = l['mean']  -curr_ref['mean'  ]            
         diffs.at[idx,'median'] = l['median']-curr_ref['median']
         diffs.at[idx,'RA-950'] = l['RA-950']-curr_ref['RA-950']
         diffs.at[idx,'RA-920'] = l['RA-920']-curr_ref['RA-920']
@@ -179,7 +180,7 @@ def main(argc,argv):
                 if __DEBUG__:
                     print('D: {} K: {} ST: {}'.format(curr_dose,curr_kernel,curr_slice_thickness))
 
-                if curr_dose==ref_dose and curr_slice_thickness==ref_slice_thickness and curr_kernel==ref_kernel:
+                if curr_dose==ref_dose and curr_slice_thickness==ref_slice_thickness and curr_kernel==ref_kernel and results_csv==refs_csv:
                     row.append('N/A\nN/A ')
                     continue
                 
@@ -206,19 +207,19 @@ def main(argc,argv):
                 # Calculate 1 sample, using the difference
                 # These are not really necessary, however I have included them here
                 # to make sure that I understood what was I doing.
-                result_1_sample=scipystats.ttest_1samp(curr_ra950,0)
                 if __DEBUG__:
+                    result_1_sample=scipystats.ttest_1samp(curr_ra950,0)
                     print('1 Sample: {}'.format(result_1_sample))
 
                 # Calculate 2 sample, using the original data
-                result_2_sample=scipystats.ttest_rel(curr_results_org_ra950,refs_ra950)
-                if __DEBUG__:
+                if __DEBUG__:                
+                    result_2_sample=scipystats.ttest_rel(curr_results_org_ra950,refs_ra950)
                     print('Paired: {}'.format(result_2_sample))
 
                 ### Test whether difference is significantly different
                 ### than 0.05 (for RA950). Present 95% confidence interval.
                 result_1_sample=scipystats.ttest_1samp(curr_ra950,0.05)
-                conf=scipystats.t.interval(.95,len(curr_ra950)-1,loc=np.mean(curr_ra950),scale=scipystats.sem(curr_ra950))
+                conf=scipystats.t.interval(.95,len(curr_ra950)-1,loc=curr_ra950.mean(skipna=True),scale=scipystats.sem(curr_ra950))
                 if __DEBUG__:
                     print('1 Sample, difference, ==0.05: {}'.format(result_1_sample))
                     print('95% confidence interval:     {}'.format(conf))
@@ -276,7 +277,7 @@ def main(argc,argv):
     final_results=final_results.sort_values('dose',ascending=False)
     final_results=final_results.pivot(index='dose',columns='un_idx',values='color')
     f = plt.figure(figsize=(12,5))
-    ax=sns.heatmap(final_results,cmap=cm,linewidths=0.5,xticklabels=tick_labels,annot=row_annotations,cbar=False)
+    ax=sns.heatmap(final_results,cmap=cm,linewidths=0.5,xticklabels=tick_labels,annot=row_annotations,cbar=False,vmin=1,vmax=3)
     ax.set_xticklabels(tick_labels,rotation=90)
     ax.invert_yaxis()
     ax.xaxis.tick_top()
@@ -295,13 +296,13 @@ def codebook(df, var):
     #     df is the data frame
     #     var is the name of the column you want to analyze
     
-    print('CODEBOOK for {}'.format(str(var)))    
+    print('CODEBOOK for {}'.format(str(var)))
     unique_values = len(df[var].unique())
     max_v = df[var].max()
     min_v = df[var].min()
     n_miss = sum(pd.isnull(df[var]))
-    mean = df[var].mean()
-    stdev = df[var].std()
+    mean = df[var].mean(skipna=True)
+    stdev = df[var].std(skipna=True)
     print('{}'.format(pd.DataFrame({'unique values': unique_values, 'max value' : max_v, 'min value': min_v, 'num of missing' : n_miss, 'mean' : mean, 'stdev' : stdev}, index = [0])))
     print('********************************************************************************')
     return
