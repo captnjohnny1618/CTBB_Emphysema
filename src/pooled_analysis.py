@@ -4,219 +4,286 @@ import os
 import csv
 
 import numpy as np
+import pandas as pd
 import matplotlib as mp
 import matplotlib.pyplot as plt
 
+import matplotlib.lines as mlines
+
 import itertools
 
-########################################
-# Configuration data (hopefully so we don't actually have to edit the
-# underlying code in the future)
-########################################
+# Global defines:
+ref_kernel          = 1.0
+ref_slice_thickness = 1.0
+ref_dose            = 100
 
-metric=sys.argv[3]
+doses             = [100,50,25,10]
+kernels           = [1,2,3]
+slice_thicknesses = [0.6,1.0,2.0]
 
-# Reference condition
-ref_kernel=2.0
-ref_slice_thickness=1.0
-ref_dose=100
-
-# Plot info 
-plot_style='error_bars' # choices are 'raw' or 'error_bars'
 markers=itertools.cycle(('o','^','s'))
-if metric=='PERC15':
-    #plot_ylims=(-120,65)
-    plot_ylims=(-150,80)    
-elif metric=='RA950':
-    #plot_ylims= (-0.075,.45)        # 'auto' or tuple RA-950: (-0.075,.45) PERC15:(-120,65)
-    plot_ylims= (-0.1,.6)
-else:
-    plot_ylims='auto'       # 'auto' or tuple
+colors=itertools.cycle(('b','g','r'))
 
-# Output information
-display_fig=False
-save_fig=True
-save_format='png'
-kernels={2.0:'medium',1.0:'smooth',3.0:'sharp'}
-outfile_name='{}_ref_1.0_{}'.format(metric,kernels[ref_kernel])
-save_dpi=600
+kernel_label_dict={
+    1.0:"Smooth",
+    2.0:"Medium",
+    3.0:"Sharp"}
 
-print("Metric:    {}".format(metric))
-print("Outfile:   {}".format(outfile_name))
-print("Reference: k{},s{},d{}".format(ref_kernel,ref_slice_thickness,ref_dose))
+label_dict={
+    'dose':'% Clinical CTDIvol',
+    'slice_thickness':'Slice Thickness',
+    'kernel':'kernel',
+    'RA950':'RA950',
+    'RA920':'RA920',
+    'RA910':'RA910',
+    'RA970':'RA970',        
+    'PERC15':'PERC15',
+    'PERC10':'PERC10'}
 
-########################################
+def usage():
+    print("""
+          Usage: pooled_analysis_REDO.py /path/to/results_file.csv /path/to/reference_file.csv /path/to/output_directory/
+          
+          NOTE: This file is built for the analysis of John's dissertation data
+                and should most likely not be used directly, without modification,
+                for any other regression analysis.
+          
+          Copyright (c) John Hoffman 2018
+          """)
 
-def gen_figure(data,var_y_axis,var_x_axis,var_series,var_plots,plot_type='raw'):
+def printf(s):
+    # Helper function.  Prints to STDOUT without necessarily including
+    # the newline (unless user specifies it).
+    sys.stdout.write(s)
+    sys.stdout.flush()
 
-    label_dict={
-        'dose':'% Clinical CTDIvol',
-        'slice_thickness':'Slice Thickness',
-        'kernel':'kernel',
-        'RA950':'RA950',
-        'RA920':'RA920',
-        'RA910':'RA910',
-        'RA970':'RA970',        
-        'PERC15':'PERC15',
-        'PERC10':'PERC10'
-        }
+def newline(x,y,ax):
+    # Helper function. Draws lines from point a to b
+    # x y are tuples of form (x1,x2) (y1,y2).  End points of line are (x1,y1) (x2,y2)
+    l = mlines.Line2D(x,y,color='0.75',linestyle='--')
+    ax.add_line(l)
+    return l    
 
-    kernel_label_dict={
-        1.0:"Smooth",
-        2.0:"Medium",
-        3.0:"Sharp"
-        }
+def main(argc,argv):
+    # Command line arguments
+    results_csv = argv[1]
+    reference_csv = argv[2]
+    output_dir = argv[3]
+
+    # Flags
+    ref_overlay_flag=False
+    ref_marker_flag=False
     
-    plot_vars=np.unique(data[var_plots])
-    series_vars=np.unique(data[var_series])
-    n_plots_per_figure=plot_vars.size
-    n_series_per_plot=series_vars.size
+    # Load the data from the CSV file into pandas dataframes
+    # Note that the CSV files have headers, and therefor columns can be
+    # addressed using commands like results['RA-950'] or results['id']
+    printf('Loading data... ')
+    results_org = pd.read_csv(results_csv,na_values='None')
+    refs_org    = pd.read_csv(reference_csv,na_values='None')
+    print('DONE')
 
-    x_axis_vars=np.unique(data[var_x_axis])
+    refs = refs_org[ (refs_org.kernel == ref_kernel) &
+                     (refs_org.slice_thickness == ref_slice_thickness) &
+                     (refs_org.dose == ref_dose)]
 
-    plot_count=1;
+    diffs_reference_dataset=refs_org.copy()
+    diffs_results_dataset=results_org.copy()
+
+
+    # Generate difference data for both 
+    printf('Generating difference data... ')    
+    for idx,l in diffs_reference_dataset.iterrows():
+        # Find the reference for the current row
+        curr_patient=l['id']
+        curr_ref=refs[refs['id']==curr_patient]
+        diffs_reference_dataset.at[idx,'RA-950'] = l['RA-950']-curr_ref['RA-950']
+        diffs_reference_dataset.at[idx,'PERC15'] = l['PERC15']-curr_ref['PERC15']
+
+    for idx,l in diffs_results_dataset.iterrows():
+        # Find the reference for the current row
+        curr_patient=l['id']
+        curr_ref=refs[refs['id']==curr_patient]
+        diffs_results_dataset.at[idx,'RA-950'] = l['RA-950']-curr_ref['RA-950']
+        diffs_results_dataset.at[idx,'PERC15'] = l['PERC15']-curr_ref['PERC15']
+
+    if results_csv!=reference_csv:
+        ref_overlay_flag==True
+
+    if results_csv.find('wfbp')!=-1 and results_csv.find('bilateral')==-1:
+        ref_marker_flag=True
+
+    # Generate our figures
+    # Everyone
+    printf('Generating pooled plot: full dataset...')
+    diffs_results=diffs_results_dataset
+    diffs_reference=diffs_reference_dataset
+    gen_figure(diffs_results_dataset,diffs_reference_dataset, False,ref_marker_flag,'RA-950',output_dir)
+    gen_figure(diffs_results_dataset,diffs_reference_dataset, False,ref_marker_flag,'PERC15',output_dir)
+    
+    # No emphysema
+    printf('Generating pooled plot: no emphysema...')    
+    clean_refs=refs.copy()
+    data=diffs_results_dataset.copy()
+    for idx,r in refs.iterrows():    
+        if r['RA-950']>=0.05:
+            pipe_id    = r['id'];
+            data       = data[data['id']!=pipe_id]
+            clean_refs = clean_refs[clean_refs['id']!=pipe_id]
+    gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'RA-950',output_dir,name_modifier='_none')
+    gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'PERC15',output_dir,name_modifier='_none')
+
+    # Mild emphysema
+    printf('Generating pooled plot: mild emphysema...')        
+    clean_refs=refs.copy()
+    data=diffs_results_dataset.copy()
+    for idx,r in refs.iterrows():
+        if r['RA-950']<0.05:
+            pipe_id    = r['id'];
+            data       = data[data['id']!=pipe_id]
+            clean_refs = clean_refs[clean_refs['id']!=pipe_id]
+    gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'RA-950',output_dir,name_modifier='_mild')
+    gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'PERC15',output_dir,name_modifier='_mild')
+    print('DONE')
+
+    # Moderate emphysema
+    printf('Generating pooled plot: moderate emphysema...')        
+    clean_refs=refs.copy()
+    data=diffs_results_dataset.copy()
+    for idx,r in refs.iterrows():    
+        if r['RA-950']<0.10:
+            pipe_id    = r['id'];
+            data       = data[data['id']!=pipe_id]
+            clean_refs = clean_refs[clean_refs['id']!=pipe_id]
+    gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'RA-950',output_dir,name_modifier='_moderate')
+    gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'PERC15',output_dir,name_modifier='_moderate')    
+
+    ## RA-950
+    #gen_figure(diffs_results_dataset,diffs_reference_dataset,True,ref_marker_flag,'RA-950',output_dir)
+    #gen_figure(diffs_results_dataset[diffs_reference_dataset['RA-950']>=0.1],diffs_reference_dataset,True,ref_marker_flag,'RA-950',output_dir)    
+        
+    print('DONE')
+
+def gen_figure(data_results,data_reference,ref_overlay_flag,ref_marker_flag,metric,output_dir,name_modifier=''):
+
+    plot_vars          = slice_thicknesses    
+    series_vars        = kernels
+    n_plots_per_figure = len(plot_vars)
+    n_series_per_plot  = len(kernels)
+
+    x_axis_vars=doses
     f, ax =plt.subplots(1,n_plots_per_figure,sharey=True,figsize=(4*n_plots_per_figure,4))
 
-    # Plot all available datapoints, no pooling within groups
-    if plot_type=='raw':
-        for p,a in zip(plot_vars,ax):
-            #print(plot_count,'/',n_plots_per_figure)
+    for p,a in zip(plot_vars,ax):
+        # Isolate slice thickness data for current slice thickness/plot
+        plot_data=data_results[data_results['slice_thickness']==p]
         
-            # Extract only the data for this plot
-            plot_data=data[data[var_plots]==p]
-            
-            for s in series_vars:
-                # X values are the "var_x_axis"
-                # Y values are the "var_y_axis"
-                # Extract only the data for the first series
-                series_data=plot_data[plot_data[var_series]==s]
-                a.plot(series_data[var_x_axis],series_data[var_y_axis],'o',label=s)
-                a.set_xlabel(var_x_axis)
-                a.set_ylabel(var_y_axis)
-                a.set_title('{}: {}'.format(var_plots,p))
-                a.legend(fontsize=13.0)
-                
-            plot_count+=1
-            
-    # Average together within groups, and calculate error bars
-    elif plot_type=='error_bars':
-        for p,a in zip(plot_vars,ax):
-            #print(plot_count,'/',n_plots_per_figure)
-        
-            # Extract only the data for this plot
-            plot_data=data[data[var_plots]==p]
-            
-            for s in series_vars:
-                # X values are the "var_x_axis"
-                # Y values are the "var_y_axis"
-                # Extract only the data for the first series
-                series_data=plot_data[plot_data[var_series]==s]
+        for s in series_vars:
+            # Isolate kernel data for current series (i.e. line plot)
+            series_data=plot_data[plot_data['kernel']==s]
+            x_data=[]
+            y_data=[]
+            y_err=[]
 
+            for x in x_axis_vars:
+                group_data=series_data[series_data['dose']==x]
+                #mean=np.mean(group_data[metric])
+                #sd=np.std(group_data[metric])
+                #sem=sd/np.sqrt(group_data.size)
+                mean=group_data[metric].mean()
+                sd=group_data[metric].std()
+                sem=sd/np.sqrt(group_data.size)
+                x_data.append(x);
+                y_data.append(mean);
+                y_err.append(sem);
+            
+            marker=next(markers);
+            color=next(colors);
+            
+            a.errorbar(x_data,y_data,yerr=y_err,color=color,fmt=(marker+'-'),label='{} {}'.format(kernel_label_dict[s],label_dict['kernel']))
+            a.legend(fontsize=11.0)
+
+            var_series='kernel'
+            var_plots='slice_thickness'
+            var_x_axis='dose'
+            
+            # Check for and mark reference (if necessary)
+            if (((var_series=='kernel' and s==ref_kernel) or (var_series=='dose' and s==ref_dose) or (var_series=='slice_thickness' and s==ref_slice_thickness)) and
+                ((var_plots=='kernel' and p==ref_kernel) or (var_plots=='dose' and p==ref_dose) or (var_plots=='slice_thickness' and p==ref_slice_thickness))):
+
+                x=np.array(x_data)
+                y=np.array(y_data)
+
+                if var_x_axis=='kernel':
+                    ref=ref_kernel;
+                elif var_x_axis=='slice_thickness':
+                    ref=ref_slice_thickness
+                elif var_x_axis=='dose':
+                    ref=ref_dose
+                else:
+                    print('Something went wrong')
+                y=y[x==ref]
+                x=x[x==ref]
+
+                if ref_marker_flag:
+                    a.plot(x,y,'y*',markersize=13)
+
+    if ref_overlay_flag:
+        for p,a in zip(plot_vars,ax):
+            # Isolate slice thickness data for current slice thickness/plot
+            plot_data=data_reference[data_reference['slice_thickness']==p]
+            
+            for s in series_vars:
+                # Isolate kernel data for current series (i.e. line plot)
+                series_data=plot_data[plot_data['kernel']==s]
                 x_data=[]
                 y_data=[]
                 y_err=[]
-                
+    
                 for x in x_axis_vars:
-                    group_data=series_data[series_data[var_x_axis]==x]
-                    mean=np.mean(group_data[var_y_axis])
-                    sd=np.std(group_data[var_y_axis])
-                    #print(mean, ':', sd)
+                    group_data=series_data[series_data['dose']==x]
+                    #mean=np.mean(group_data[metric])
+                    #sd=np.std(group_data[metric])
+                    #sem=sd/np.sqrt(group_data.size)
+                    mean=group_data[metric].mean()
+                    sd=group_data[metric].std()
                     sem=sd/np.sqrt(group_data.size)
                     x_data.append(x);
                     y_data.append(mean);
                     y_err.append(sem);
-
-                #a.plot(series_data[var_x_axis],series_data[var_y_axis],'o',label=s)
+                
                 marker=next(markers);
-                if var_series=='kernel':
-                    a.errorbar(x_data,y_data,yerr=y_err,fmt=(marker+'-'),label='{} {}'.format(kernel_label_dict[s],label_dict[var_series]))
-                else:
-                    a.errorbar(x_data,y_data,yerr=y_err,fmt=(marker+'-'),label='{} {}'.format(label_dict[var_series],s))
-                a.set_xlabel(label_dict[var_x_axis])
-                a.set_ylabel('Difference {}'.format(label_dict[var_y_axis]))
-                a.set_title('{}: {}'.format(label_dict[var_plots],p))
+                color=next(colors);                
+                a.errorbar(x_data,y_data,alpha=0.1,color=color,yerr=y_err,fmt=(marker+'-'),label='{} {}'.format(kernel_label_dict[s],label_dict['kernel']))
 
-                if var_series=='kernel':
-                    a.legend(fontsize=11.0)
-                else:
-                    a.legend(fontsize=13.0)
-
-                # Check for and mark reference (if necessary)
-                if (((var_series=='kernel' and s==ref_kernel) or (var_series=='dose' and s==ref_dose) or (var_series=='slice_thickness' and s==ref_slice_thickness)) and
-                    ((var_plots=='kernel' and p==ref_kernel) or (var_plots=='dose' and p==ref_dose) or (var_plots=='slice_thickness' and p==ref_slice_thickness))):
-
-                    x=np.array(x_data)
-                    y=np.array(y_data)
-
-                    if var_x_axis=='kernel':
-                        ref=ref_kernel;
-                    elif var_x_axis=='slice_thickness':
-                        ref=ref_slice_thickness
-                    elif var_x_axis=='dose':
-                        ref=ref_dose
-                    else:
-                        print('Something went wrong')
-                    y=y[x==ref]
-                    x=x[x==ref]
-                    a.plot(x,y,'y*',markersize=13)
-
-            plot_count+=1
-        
     for a in ax:
         a.set_xlim(0,105)
-        if plot_ylims!='auto':
-            a.set_ylim(plot_ylims)
+        if metric=='RA-950':
+            newline((0,105),(0.05,0.05),a)
+            newline((0,105),(-0.05,-0.05),a)
+            a.set_ylim((-0.1,.6))
+            
+        elif metric=='PERC15':
+            newline((0,105),(10,10),a)
+            newline((0,105),(-10,-10),a)
+            a.set_ylim((-150,80))                
 
-    if save_fig:
-        plt.savefig('{}.{}'.format(outfile_name,save_format),bbox_inches='tight',dpi=save_dpi)
-        
-    if display_fig:
-        plt.show()
+        else:
+            sys.exit('')
+
+    outfile_name='{}_ref_1.0_{}'.format(metric,kernel_label_dict[ref_kernel])
+    plt.savefig(os.path.join(output_dir,'{}{}.{}'.format(outfile_name,name_modifier,'png')),bbox_inches='tight',dpi=600)
+    
 
 if __name__=="__main__":
-    # CL argument is the results files containing the emphysema data
 
-    results_file=sys.argv[1]
-    reference_file=sys.argv[2]
+    argc=len(sys.argv)
+    argv=sys.argv
+
+    if argc<4:
+        usage()
+        sys.exit(1)
+
+    main(argc,argv)
+
+
     
-    ndtype=[('pipeline_id',str),('id',str),('dose',float),('kernel',float),('slice_thickness',float),
-            ('RA-900',float),('RA-910',float),('RA-920',float),('RA-930',float),('RA-940',float),
-            ('RA-950',float),('RA-960',float),('RA-970',float),('RA-980',float),('PERC10',float),
-            ('PERC15',float),('PERC20',float),('median',float),('mean',float),('volume',float)]
-    
-    data=np.genfromtxt(results_file,dtype=None,delimiter=',',names=True)
-    data_reference=np.genfromtxt(reference_file,dtype=None,delimiter=',',names=True)
-    #data_string=np.genfromtxt(results_file,dtype=None,delimiter=',',names=True)
-
-    #print(data_string[1:20])
-
-    # Reference values are 100% dose, 5.0 mm slice thickness, smooth kernel reconstruction
-    refs = data_reference[data_reference['kernel']==ref_kernel]
-    refs = refs[refs['slice_thickness']==ref_slice_thickness]
-    refs = refs[refs['dose']==ref_dose]
-
-    diffs=np.copy(data)
-
-    # Calculate our differences
-    for l in np.nditer(diffs,op_flags=['readwrite']):
-        #print(l)
-        
-        # Find the reference for the current row
-        curr_patient=l['id']
-        curr_ref=refs[refs['id']==curr_patient] 
-
-        # calculate the differences and store back to the array
-        
-        l[...]['mean']   = l['mean']-curr_ref['mean']
-        l[...]['median'] = l['median']-curr_ref['median']        
-        l[...]['RA950']  = l['RA950']-curr_ref['RA950']
-        l[...]['RA920']  = l['RA920']-curr_ref['RA920']
-        l[...]['RA910']  = l['RA910']-curr_ref['RA910']
-        l[...]['PERC10'] = l['PERC10']-curr_ref['PERC10']
-        l[...]['PERC15'] = l['PERC15']-curr_ref['PERC15']
-        l[...]['PERC20'] = l['PERC20']-curr_ref['PERC20']                        
-        l[...]['volume'] = l['volume']-curr_ref['volume']
-
-    # For a fixed recon condition (s.t., kernel) plot the change in recon variable
-    #gen_figure(data,var_y_axis,var_x_axis,var_series,var_plots,plot_type='raw'||'error_bars'):    
-    gen_figure(diffs,metric,'dose','kernel','slice_thickness',plot_type=plot_style)

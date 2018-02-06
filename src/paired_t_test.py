@@ -90,7 +90,7 @@ def main(argc,argv):
     ref_dose            = 100
     
     # Load the data from the CSV file into pandas dataframes
-    # Note that the CSV files have headers, and therefor columns can be
+    # Note that the CSV files have headers, and therefore columns can be
     # addressed using commands like results['RA-950'] or results['id']
     printf('Loading data... ')
     results_org = pd.read_csv(results_csv,na_values='None')
@@ -210,9 +210,8 @@ def main(argc,argv):
                 if __DEBUG__:
                     result_1_sample=scipystats.ttest_1samp(curr_ra950,0)
                     print('1 Sample: {}'.format(result_1_sample))
-
-                # Calculate 2 sample, using the original data
-                if __DEBUG__:                
+                    
+                    # Calculate 2 sample, using the original data
                     result_2_sample=scipystats.ttest_rel(curr_results_org_ra950,refs_ra950)
                     print('Paired: {}'.format(result_2_sample))
 
@@ -266,16 +265,14 @@ def main(argc,argv):
 
     # Prep heatmap
     from matplotlib.colors import LinearSegmentedColormap
-    #193, 80, 0 orange
-    #239, 209, 74 yellow
-    #123, 178, 71 green
     colors=[(229.0/255, 181.0/255, 149.0/255) , (229.0/255, 222.0/255, 149.0/255),(188.0/255, 229.0/255, 149.0/255)]
     cmap_name = 'dissertation'
-    cm = LinearSegmentedColormap.from_list(cmap_name, colors, N=5)
-    
+    cm = LinearSegmentedColormap.from_list(cmap_name, colors, N=5)    
     tick_labels=['\n\nSmooth','Slice 0.6\n\nMedium','\n\nSharp','\n\nSmooth','Slice 1.0\n\nMedium','\n\nSharp','\n\nSmooth','Slice 2.0\n\nMedium','\n\nSharp']
     final_results=final_results.sort_values('dose',ascending=False)
     final_results=final_results.pivot(index='dose',columns='un_idx',values='color')
+
+    # Generate the heatmap
     f = plt.figure(figsize=(12,5))
     ax=sns.heatmap(final_results,cmap=cm,linewidths=0.5,xticklabels=tick_labels,annot=row_annotations,cbar=False,vmin=1,vmax=3)
     ax.set_xticklabels(tick_labels,rotation=90)
@@ -286,8 +283,7 @@ def main(argc,argv):
     # Show the heatmap
     if save_flag:
         plt.savefig(os.path.join(output_dir,'heat_map.png'),bbox_inches='tight',dpi=600)
-        
-    #plt.show()
+
     pass
     
     
