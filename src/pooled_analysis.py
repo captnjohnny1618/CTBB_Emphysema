@@ -119,7 +119,8 @@ def main(argc,argv):
     diffs_reference=diffs_reference_dataset
     gen_figure(diffs_results_dataset,diffs_reference_dataset, False,ref_marker_flag,'RA-950',output_dir)
     gen_figure(diffs_results_dataset,diffs_reference_dataset, False,ref_marker_flag,'PERC15',output_dir)
-    
+    print('DONE')
+
     # No emphysema
     printf('Generating pooled plot: no emphysema...')    
     clean_refs=refs.copy()
@@ -131,7 +132,8 @@ def main(argc,argv):
             clean_refs = clean_refs[clean_refs['id']!=pipe_id]
     gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'RA-950',output_dir,name_modifier='_none')
     gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'PERC15',output_dir,name_modifier='_none')
-
+    print('DONE')
+    
     # Mild emphysema
     printf('Generating pooled plot: mild emphysema...')        
     clean_refs=refs.copy()
@@ -155,12 +157,7 @@ def main(argc,argv):
             data       = data[data['id']!=pipe_id]
             clean_refs = clean_refs[clean_refs['id']!=pipe_id]
     gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'RA-950',output_dir,name_modifier='_moderate')
-    gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'PERC15',output_dir,name_modifier='_moderate')    
-
-    ## RA-950
-    #gen_figure(diffs_results_dataset,diffs_reference_dataset,True,ref_marker_flag,'RA-950',output_dir)
-    #gen_figure(diffs_results_dataset[diffs_reference_dataset['RA-950']>=0.1],diffs_reference_dataset,True,ref_marker_flag,'RA-950',output_dir)    
-        
+    gen_figure(data,diffs_reference_dataset,True,ref_marker_flag,'PERC15',output_dir,name_modifier='_moderate')
     print('DONE')
 
 def gen_figure(data_results,data_reference,ref_overlay_flag,ref_marker_flag,metric,output_dir,name_modifier=''):
@@ -191,7 +188,7 @@ def gen_figure(data_results,data_reference,ref_overlay_flag,ref_marker_flag,metr
                 #sem=sd/np.sqrt(group_data.size)
                 mean=group_data[metric].mean()
                 sd=group_data[metric].std()
-                sem=sd/np.sqrt(group_data.size)
+                sem=sd/np.sqrt(group_data[metric].size)
                 x_data.append(x);
                 y_data.append(mean);
                 y_err.append(sem);
