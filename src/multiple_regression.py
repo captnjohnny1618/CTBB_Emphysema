@@ -141,7 +141,9 @@ def main(argc,argv):
     #print(diffs.groupby(["kernel","kernel_smooth","kernel_medium","kernel_sharp"]).size())    
     
     lm = smf.ols('RA950 ~ kernel_medium + kernel_sharp + dose + slice_thickness', data = diffs).fit()
-    print(lm.summary())
+    #print(lm.summary())
+    with open(os.path.join(output_dir,'no_interaction_model.csv'),'w') as f:
+        f.write(lm.summary().as_csv())
 
     ### Models with interaction terms ========================================
     diffs["dosexslice_thickness"] = diffs.dose * diffs.slice_thickness
@@ -156,13 +158,16 @@ def main(argc,argv):
 
     # This model includes all interaction terms and has collinearity problems
     lm = smf.ols('RA950 ~ kernel_medium + kernel_sharp + dose + slice_thickness + dosexslice_thickness + dosexkernel_medium + dosexkernel_sharp + slice_thicknessxkernel_medium + slice_thicknessxkernel_sharp + slice_thicknessxkernel_mediumxdose + slice_thicknessxkernel_sharpxdose', data = diffs).fit()
-    print(lm.summary())
+    #print(lm.summary())
+    print(lm.summary().as_csv())    
     
     # This model includes all two-variable interaction terms however
     # omits the higher-order terms.  This does not throw collinearity
     # warnings.
     lm = smf.ols('RA950 ~ kernel_medium + kernel_sharp + dose + slice_thickness + dosexslice_thickness + dosexkernel_medium + dosexkernel_sharp + slice_thicknessxkernel_medium + slice_thicknessxkernel_sharp', data = diffs).fit()    
-    print(lm.summary())
+    #print(lm.summary())
+    with open(os.path.join(output_dir,'interaction_model.csv'),'w') as f:
+        f.write(lm.summary().as_csv())
 
     if save_flag:
         sys.stdout=stdout

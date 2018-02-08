@@ -114,11 +114,17 @@ def main(argc,argv):
 
     # Generate our figures
     # Everyone
-    printf('Generating pooled plot: full dataset...')
-    diffs_results=diffs_results_dataset
-    diffs_reference=diffs_reference_dataset
-    gen_figure(diffs_results_dataset,diffs_reference_dataset, False,ref_marker_flag,'RA-950',output_dir)
-    gen_figure(diffs_results_dataset,diffs_reference_dataset, False,ref_marker_flag,'PERC15',output_dir)
+    printf('Generating pooled plot: full dataset...')    
+    if sys.argv[1].find('wfbp')!=-1 and sys.argv[1].find('bilateral')==-1:
+        diffs_results=diffs_results_dataset
+        diffs_reference=diffs_reference_dataset
+        gen_figure(diffs_results_dataset,diffs_reference_dataset,False,ref_marker_flag,'RA-950',output_dir)
+        gen_figure(diffs_results_dataset,diffs_reference_dataset,False,ref_marker_flag,'PERC15',output_dir)
+    else:
+        diffs_results=diffs_results_dataset
+        diffs_reference=diffs_reference_dataset
+        gen_figure(diffs_results_dataset,diffs_reference_dataset,True,ref_marker_flag,'RA-950',output_dir)
+        gen_figure(diffs_results_dataset,diffs_reference_dataset,True,ref_marker_flag,'PERC15',output_dir)
     print('DONE')
 
     # No emphysema
@@ -195,9 +201,30 @@ def gen_figure(data_results,data_reference,ref_overlay_flag,ref_marker_flag,metr
             
             marker=next(markers);
             color=next(colors);
-            
-            a.errorbar(x_data,y_data,yerr=y_err,color=color,fmt=(marker+'-'),label='{} {}'.format(kernel_label_dict[s],label_dict['kernel']))
+
+            if sys.argv[1].find('safire')==-1:
+                kernel_label_dict={
+                    1.0:"Smooth",
+                    2.0:"Medium",
+                    3.0:"Sharp"}                
+                a.errorbar(x_data,y_data,yerr=y_err,color=color,fmt=(marker+'-'),label='{} {}'.format(kernel_label_dict[s],label_dict['kernel']))            
+            else:
+                kernel_label_dict={
+                    1.0:"I26",
+                    2.0:"I44",
+                    3.0:"I50"}
+                a.errorbar(x_data,y_data,yerr=y_err,color=color,fmt=(marker+'-'),label='{}'.format(kernel_label_dict[s]))
+
+            kernel_label_dict={
+                1.0:"Smooth",
+                2.0:"Medium",
+                3.0:"Sharp"}                
+
             a.legend(fontsize=11.0)
+
+            a.set_xlabel(label_dict['dose'])
+            a.set_ylabel('Difference {}'.format(metric))
+            a.set_title('{}: {}'.format('Slice thickness',p))
 
             var_series='kernel'
             var_plots='slice_thickness'
